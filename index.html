@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Drum Machine – 4 Voices, Pattern Bank, Song Sequencer & Download</title>
+  <style>
+    /* Global Styles */
+    body {
+      background: #222;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1, h2 {
+      margin-bottom: 20px;
+    }
+
+    /* 3D Button Styles (applied to all buttons) */
+    button {
+      background: linear-gradient(to bottom, #4d4d4d, #222);
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 4px 0 #000;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.1s ease;
+      padding: 10px 20px;
+    }
+    button:hover {
+      background: linear-gradient(to bottom, #5e5e5e, #333);
+    }
+    button:active {
+      transform: translateY(4px);
+      box-shadow: 0 0 0 #000;
+    }
+
+    /* Custom classes for pattern bank load buttons */
+    .slot-empty {
+      background: linear-gradient(to bottom, #BDBDBD, #757575) !important;
+    }
+    .slot-full {
+      background: linear-gradient(to bottom, #4CAF50, #2E7D32) !important;
+    }
+
+    /* Drum Pad & Sliders */
+    .drum-pad {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+    .drum-voice {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      background: #333;
+      border-radius: 8px;
+    }
+    /* Specific style for the large drum buttons */
+    .drum-voice button {
+      width: 120px;
+      height: 120px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 4px 0;
+    }
+    .slider-container label {
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    input[type="range"] {
+      width: 120px;
+    }
+
+    /* Pattern Sequencer Grid (16 steps × 4 voices) */
+    #pattern-grid {
+      display: grid;
+      grid-template-columns: repeat(16, 30px);
+      grid-template-rows: repeat(4, 30px);
+      gap: 2px;
+      margin: 20px auto;
+    }
+    .grid-cell {
+      width: 30px;
+      height: 30px;
+      background: #444;
+      border: 1px solid #333;
+      cursor: pointer;
+    }
+    .grid-cell.active {
+      background: #ff9800;
+    }
+    .grid-cell.current-step {
+      border: 2px solid #fff;
+    }
+
+    /* Pattern Bank */
+    #pattern-bank {
+      margin: 20px 0;
+      text-align: center;
+    }
+    #pattern-bank .bank-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+    #pattern-bank .bank-buttons div {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Song Sequencer Grid (64 slots) */
+    #song-grid {
+      display: grid;
+      grid-template-columns: repeat(16, 30px);
+      grid-template-rows: repeat(4, 30px);
+      gap: 2px;
+      margin: 20px auto;
+    }
+    .song-cell {
+      width: 30px;
+      height: 30px;
+      background: #555;
+      border: 1px solid #333;
+      cursor: pointer;
+      text-align: center;
+      line-height: 30px;
+      font-size: 14px;
+    }
+    .song-cell.current-song {
+      border: 2px solid #fff;
+    }
+
+    /* Sequencer & Song Controls */
+    #sequencer-controls,
+    #song-controls {
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Drum Machine – 4 Voices, Pattern Bank, Song Sequencer & Download</h1>
+
+  <!-- 1. Drum Pad with Pitch & Volume Sliders -->
+  <div class="drum-pad">
+    <!-- Bass Drum -->
+    <div class="drum-voice">
+      <button onclick="playBass()">Bass Drum (A)</button>
+      <div class="slider-container">
+        <label for="bassPitch">Pitch: <span id="bassPitchValue">150</span> Hz</label>
+        <input type="range" id="bassPitch" min="50" max="300" value="150"
+          oninput="document.getElementById('bassPitchValue').textContent = this.value">
+      </div>
+      <div class="slider-container">
+        <label for="bassVolume">Volume: <span id="bassVolumeValue">1.00</span></label>
+        <input type="range" id="bassVolume" min="0" max="1" step="0.01" value="1"
+          oninput="document.getElementById('bassVolumeValue').textContent = parseFloat(this.value).toFixed(2)">
+      </div>
+    </div>
+    <!-- Snare -->
+    <div class="drum-voice">
+      <button onclick="playSnare()">Snare (S)</button>
+      <div class="slider-container">
+        <label for="snarePitch">Pitch: <span id="snarePitchValue">1000</span> Hz</label>
+        <input type="range" id="snarePitch" min="500" max="2000" value="1000"
+          oninput="document.getElementById('snarePitchValue').textContent = this.value">
+      </div>
+      <div class="slider-container">
+        <label for="snareVolume">Volume: <span id="snareVolumeValue">1.00</span></label>
+        <input type="range" id="snareVolume" min="0" max="1" step="0.01" value="1"
+          oninput="document.getElementById('snareVolumeValue').textContent = parseFloat(this.value).toFixed(2)">
+      </div>
+    </div>
+    <!-- Closed Hi‑hat -->
+    <div class="drum-voice">
+      <button onclick="playHiHat()">Closed Hi‑hat (D)</button>
+      <div class="slider-container">
+        <label for="hihatPitch">Pitch: <span id="hihatPitchValue">5000</span> Hz</label>
+        <input type="range" id="hihatPitch" min="3000" max="10000" value="5000"
+          oninput="document.getElementById('hihatPitchValue').textContent = this.value">
+      </div>
+      <div class="slider-container">
+        <label for="hihatVolume">Volume: <span id="hihatVolumeValue">1.00</span></label>
+        <input type="range" id="hihatVolume" min="0" max="1" step="0.01" value="1"
+          oninput="document.getElementById('hihatVolumeValue').textContent = parseFloat(this.value).toFixed(2)">
+      </div>
+    </div>
+    <!-- Open Hi‑hat -->
+    <div class="drum-voice">
+      <button onclick="playOpenHH()">Open Hi‑hat (F)</button>
+      <div class="slider-container">
+        <label for="openhhPitch">Pitch: <span id="openhhPitchValue">5000</span> Hz</label>
+        <input type="range" id="openhhPitch" min="3000" max="10000" value="5000"
+          oninput="document.getElementById('openhhPitchValue').textContent = this.value">
+      </div>
+      <div class="slider-container">
+        <label for="openhhVolume">Volume: <span id="openhhVolumeValue">1.00</span></label>
+        <input type="range" id="openhhVolume" min="0" max="1" step="0.01" value="1"
+          oninput="document.getElementById('openhhVolumeValue').textContent = parseFloat(this.value).toFixed(2)">
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Pattern Sequencer (16 steps × 4 voices) -->
+  <section id="pattern-sequencer">
+    <h2>Pattern Sequencer</h2>
+    <div id="pattern-grid"></div>
+    <div id="sequencer-controls">
+      <label for="bpm">BPM: <span id="bpmValue">120</span></label>
+      <input type="range" id="bpm" min="60" max="240" value="120"
+        oninput="document.getElementById('bpmValue').textContent = this.value">
+      <br>
+      <button id="start-button" onclick="startPattern()">Play Pattern</button>
+      <button id="stop-button" onclick="stopPattern()" disabled>Stop Pattern</button>
+    </div>
+  </section>
+
+  <!-- 3. Pattern Bank (8 Slots) -->
+  <section id="pattern-bank">
+    <h2>Pattern Bank</h2>
+    <div class="bank-buttons">
+      <div class="save-buttons">
+        <span>Save Pattern:</span>
+        <button onclick="saveCurrentPattern(1)">Slot 1</button>
+        <button onclick="saveCurrentPattern(2)">Slot 2</button>
+        <button onclick="saveCurrentPattern(3)">Slot 3</button>
+        <button onclick="saveCurrentPattern(4)">Slot 4</button>
+        <button onclick="saveCurrentPattern(5)">Slot 5</button>
+        <button onclick="saveCurrentPattern(6)">Slot 6</button>
+        <button onclick="saveCurrentPattern(7)">Slot 7</button>
+        <button onclick="saveCurrentPattern(8)">Slot 8</button>
+      </div>
+      <div class="load-buttons">
+        <span>Load Pattern:</span>
+        <button id="load-slot-1" class="slot-empty" onclick="loadPattern(1)">Slot 1</button>
+        <button id="load-slot-2" class="slot-empty" onclick="loadPattern(2)">Slot 2</button>
+        <button id="load-slot-3" class="slot-empty" onclick="loadPattern(3)">Slot 3</button>
+        <button id="load-slot-4" class="slot-empty" onclick="loadPattern(4)">Slot 4</button>
+        <button id="load-slot-5" class="slot-empty" onclick="loadPattern(5)">Slot 5</button>
+        <button id="load-slot-6" class="slot-empty" onclick="loadPattern(6)">Slot 6</button>
+        <button id="load-slot-7" class="slot-empty" onclick="loadPattern(7)">Slot 7</button>
+        <button id="load-slot-8" class="slot-empty" onclick="loadPattern(8)">Slot 8</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Song Sequencer (64 Slots) & Download Button -->
+  <section id="song-sequencer">
+    <h2>Song Sequencer</h2>
+    <div id="song-grid"></div>
+    <div id="song-controls">
+      <label for="songBpm">Song BPM: <span id="songBpmValue">120</span></label>
+      <input type="range" id="songBpm" min="60" max="240" value="120"
+        oninput="document.getElementById('songBpmValue').textContent = this.value">
+      <br>
+      <button id="start-song" onclick="startSong()">Play Song</button>
+      <button id="stop-song" onclick="stopSong()" disabled>Stop Song</button>
+      <br><br>
+      <!-- Download Song button: renders the entire song from the beginning until a cell with 0 is reached -->
+      <button id="download-song" onclick="downloadSong()">Download Song</button>
+    </div>
+  </section>
+
+  <script>
+    /***** Audio Setup, Master Routing & Recorder Setup *****/
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Create a MediaStream destination to capture the master output.
+    const mediaDest = audioCtx.createMediaStreamDestination();
+    // Create a master gain node.
+    const masterGain = audioCtx.createGain();
+    masterGain.gain.value = 1;
+    // Connect masterGain to both the audio context destination (for playback) and mediaDest (for recording)
+    masterGain.connect(audioCtx.destination);
+    masterGain.connect(mediaDest);
+    // We'll use this MediaRecorder in our downloadSong() function.
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    /***** Drum Functions *****/
+    function playBass() {
+      const bassPitch = parseFloat(document.getElementById("bassPitch").value);
+      const bassVolume = parseFloat(document.getElementById("bassVolume").value);
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(bassPitch, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+      gainNode.gain.setValueAtTime(bassVolume, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(bassVolume * 0.001, audioCtx.currentTime + 0.5);
+      osc.connect(gainNode);
+      gainNode.connect(masterGain);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function playSnare() {
+      const snarePitch = parseFloat(document.getElementById("snarePitch").value);
+      const snareVolume = parseFloat(document.getElementById("snareVolume").value);
+      const bufferSize = audioCtx.sampleRate * 0.2;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(snareVolume, audioCtx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(snareVolume * 0.01, audioCtx.currentTime + 0.2);
+      const bandpass = audioCtx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.value = snarePitch;
+      noise.connect(bandpass);
+      bandpass.connect(noiseGain);
+      noiseGain.connect(masterGain);
+      noise.start();
+      noise.stop(audioCtx.currentTime + 0.2);
+    }
+
+    function playHiHat() {
+      const hihatPitch = parseFloat(document.getElementById("hihatPitch").value);
+      const hihatVolume = parseFloat(document.getElementById("hihatVolume").value);
+      const bufferSize = audioCtx.sampleRate * 0.05;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(hihatVolume, audioCtx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(hihatVolume * 0.01, audioCtx.currentTime + 0.05);
+      const highpass = audioCtx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = hihatPitch;
+      noise.connect(highpass);
+      highpass.connect(noiseGain);
+      noiseGain.connect(masterGain);
+      noise.start();
+      noise.stop(audioCtx.currentTime + 0.05);
+    }
+
+    function playOpenHH() {
+      const openhhPitch = parseFloat(document.getElementById("openhhPitch").value);
+      const openhhVolume = parseFloat(document.getElementById("openhhVolume").value);
+      const bufferSize = audioCtx.sampleRate * 0.3;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(openhhVolume, audioCtx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(openhhVolume * 0.01, audioCtx.currentTime + 0.3);
+      const highpass = audioCtx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = openhhPitch;
+      noise.connect(highpass);
+      highpass.connect(noiseGain);
+      noiseGain.connect(masterGain);
+      noise.start();
+      noise.stop(audioCtx.currentTime + 0.3);
+    }
+
+    /***** Keyboard Shortcuts *****/
+    document.addEventListener('keydown', function(event) {
+      switch (event.key.toLowerCase()) {
+        case 'a': playBass(); break;
+        case 's': playSnare(); break;
+        case 'd': playHiHat(); break;
+        case 'f': playOpenHH(); break;
+      }
+    });
+
+    /***** Pattern Sequencer (16 steps × 4 voices) *****/
+    const patternRows = 4;
+    const patternCols = 16;
+    let currentPatternStep = 0;
+    let patternInterval;
+
+    function createPatternGrid() {
+      const grid = document.getElementById('pattern-grid');
+      grid.innerHTML = '';
+      for (let r = 0; r < patternRows; r++) {
+        for (let c = 0; c < patternCols; c++) {
+          const cell = document.createElement('div');
+          cell.classList.add('grid-cell');
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.addEventListener('click', () => {
+            cell.classList.toggle('active');
+          });
+          grid.appendChild(cell);
+        }
+      }
+    }
+
+    function updateCurrentPatternHighlight() {
+      document.querySelectorAll('.grid-cell').forEach(cell => {
+        cell.classList.remove('current-step');
+      });
+      document.querySelectorAll(`.grid-cell[data-col='${currentPatternStep}']`).forEach(cell => {
+        cell.classList.add('current-step');
+      });
+    }
+
+    function playPatternStep() {
+      updateCurrentPatternHighlight();
+      for (let r = 0; r < patternRows; r++) {
+        const cell = document.querySelector(`.grid-cell[data-row='${r}'][data-col='${currentPatternStep}']`);
+        if (cell && cell.classList.contains('active')) {
+          if (r === 0) playBass();
+          else if (r === 1) playSnare();
+          else if (r === 2) playHiHat();
+          else if (r === 3) playOpenHH();
+        }
+      }
+      currentPatternStep = (currentPatternStep + 1) % patternCols;
+    }
+
+    function startPattern() {
+      const bpm = parseFloat(document.getElementById('bpm').value);
+      const stepIntervalTime = ((60 / bpm) / 4) * 1000;
+      currentPatternStep = 0;
+      document.getElementById('start-button').disabled = true;
+      document.getElementById('stop-button').disabled = false;
+      patternInterval = setInterval(playPatternStep, stepIntervalTime);
+    }
+
+    function stopPattern() {
+      clearInterval(patternInterval);
+      document.getElementById('start-button').disabled = false;
+      document.getElementById('stop-button').disabled = true;
+      document.querySelectorAll('.grid-cell').forEach(cell => {
+        cell.classList.remove('current-step');
+      });
+    }
+
+    /***** Pattern Bank (8 Slots) *****/
+    let patternBank = new Array(8).fill(null);
+    function saveCurrentPattern(slot) {
+      const pattern = [];
+      for (let r = 0; r < patternRows; r++) {
+        const rowPattern = [];
+        for (let c = 0; c < patternCols; c++) {
+          const cell = document.querySelector(`.grid-cell[data-row='${r}'][data-col='${c}']`);
+          rowPattern.push(cell.classList.contains('active'));
+        }
+        pattern.push(rowPattern);
+      }
+      patternBank[slot - 1] = pattern;
+      console.log(`Pattern saved to slot ${slot}`);
+      // Update the corresponding load button to indicate the slot is full.
+      const btn = document.getElementById("load-slot-" + slot);
+      if (btn) {
+        btn.classList.remove("slot-empty");
+        btn.classList.add("slot-full");
+      }
+    }
+
+    function loadPattern(slot) {
+      const pattern = patternBank[slot - 1];
+      if (!pattern) {
+        console.log(`No pattern saved in slot ${slot}`);
+        return;
+      }
+      for (let r = 0; r < patternRows; r++) {
+        for (let c = 0; c < patternCols; c++) {
+          const cell = document.querySelector(`.grid-cell[data-row='${r}'][data-col='${c}']`);
+          if (pattern[r][c]) cell.classList.add('active');
+          else cell.classList.remove('active');
+        }
+      }
+      console.log(`Pattern loaded from slot ${slot}`);
+    }
+
+    /***** Song Sequencer (64 Slots) *****/
+    const songSlots = 64;
+    let songSequence = new Array(songSlots).fill(1);
+    let songInterval;
+    let songStep = 0;
+
+    function createSongGrid() {
+      const grid = document.getElementById('song-grid');
+      grid.innerHTML = '';
+      for (let i = 0; i < songSlots; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('song-cell');
+        cell.dataset.index = i;
+        cell.textContent = songSequence[i];
+        // Cycle through 0–8 (0 signals song end)
+        cell.addEventListener('click', () => {
+          songSequence[i] = (songSequence[i] + 1) % 9;
+          cell.textContent = songSequence[i];
+        });
+        grid.appendChild(cell);
+      }
+    }
+
+    function updateSongGridHighlight() {
+      document.querySelectorAll('.song-cell').forEach(cell => {
+        cell.classList.remove('current-song');
+      });
+      const currentSongSlot = Math.floor(songStep / patternCols);
+      const cell = document.querySelector(`.song-cell[data-index='${currentSongSlot}']`);
+      if (cell) cell.classList.add('current-song');
+    }
+
+    // In song mode, each step plays a part of the current pattern.
+    // When a song cell with pattern 0 is reached, the song stops.
+    function playSongStep() {
+      const currentSongSlot = Math.floor(songStep / patternCols);
+      const patternStep = songStep % patternCols;
+      // If the current song cell is 0, stop the song.
+      if (songSequence[currentSongSlot] === 0) {
+        stopSong();
+        return;
+      }
+      updateSongGridHighlight();
+      const patternNumber = songSequence[currentSongSlot];
+      const pattern = patternBank[patternNumber - 1];
+      if (pattern) {
+        for (let r = 0; r < patternRows; r++) {
+          if (pattern[r][patternStep]) {
+            if (r === 0) playBass();
+            else if (r === 1) playSnare();
+            else if (r === 2) playHiHat();
+            else if (r === 3) playOpenHH();
+          }
+        }
+      }
+      songStep = (songStep + 1) % (songSlots * patternCols);
+    }
+
+    function startSong() {
+      const bpm = parseFloat(document.getElementById('songBpm').value);
+      const stepIntervalTime = ((60 / bpm) / 4) * 1000;
+      songStep = 0;
+      document.getElementById('start-song').disabled = true;
+      document.getElementById('stop-song').disabled = false;
+      songInterval = setInterval(playSongStep, stepIntervalTime);
+    }
+
+    // Modified stopSong() stops the song and, if active, stops the mediaRecorder.
+    function stopSong() {
+      clearInterval(songInterval);
+      document.getElementById('start-song').disabled = false;
+      document.getElementById('stop-song').disabled = true;
+      document.querySelectorAll('.song-cell').forEach(cell => {
+        cell.classList.remove('current-song');
+      });
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
+    }
+
+    /***** Download Song Function *****
+     * When the "Download Song" button is clicked, this function:
+     * 1. Stops any currently playing song.
+     * 2. Resets the MediaRecorder and starts recording the master output.
+     * 3. Starts the song sequencer from the beginning.
+     * 4. When a song cell with pattern 0 is encountered, stopSong() is called,
+     *    which in turn stops the MediaRecorder.
+     * 5. Once the MediaRecorder stops, a temporary download link is automatically triggered.
+     */
+    function downloadSong() {
+      // Stop any active song playback.
+      if (songInterval) {
+        stopSong();
+      }
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(mediaDest.stream);
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordedChunks.push(event.data);
+      };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        // Create and trigger a temporary download link.
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'drum_machine_song.webm';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
+      };
+      mediaRecorder.start();
+
+      // Start the song from the beginning.
+      const bpm = parseFloat(document.getElementById('songBpm').value);
+      const stepIntervalTime = ((60 / bpm) / 4) * 1000;
+      songStep = 0;
+      songInterval = setInterval(playSongStep, stepIntervalTime);
+    }
+
+    // Initialize the pattern and song grids on page load.
+    createPatternGrid();
+    createSongGrid();
+  </script>
+</body>
+</html>
